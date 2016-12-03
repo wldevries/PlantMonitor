@@ -8,8 +8,6 @@
 
 #include "Constants.h"
 
-int sensorValue = 0;  // variable to store the value coming from the sensor
-
 bool sendRequest = true; // used to understand if the http request must be sent
 
 WiFiUDP ntpUDP;
@@ -23,6 +21,7 @@ RTCZero rtc;
 
 void setup() {
   pinMode(ledPin, OUTPUT);
+  pinMode(humidityVccPin, OUTPUT);
   Serial.begin(9600);
 
   connectToAP();
@@ -38,8 +37,6 @@ void setup() {
   Serial.println("ntp time received:");
   Serial.println(timeClient.getEpochTime());
   Serial.println(timeClient.getFormattedTime());
-  Serial.println();
-
   Serial.println("Setting RTC");
   rtc.begin();
   rtc.setEpoch(timeClient.getEpochTime());
@@ -52,21 +49,44 @@ void setup() {
 
   // Can't get reconnect to work...
   // disconnectFromAP();
+
+  lockOnTemperature();
 }
 
 void alarmMatch() {
-  Serial.println("alarm went off");
+  Serial.print(rtc.getEpoch());
+  Serial.println(": alarm went off");
   sendRequest = true;
 }
+
+int humidity = 0;  // variable to store the value coming from the sensor
+float temperature = 0;
 
 void loop() {
   if (sendRequest) {
     digitalWrite(ledPin, HIGH);
-    sensorValue = analogRead(sensorPin);  
-    sendValue(sensorName, rtc.getEpoch(), sensorValue);
+
+    humidity = readHumidity();
+    sendValue(humidityName, rtc.getEpoch(), humidity);
+
+    if (readTemperature(&temperature)) {
+      sendValue(temperatureName, rtc.getEpoch(), temperature);
+    } else
+    {
+      Serial.println("failed to read temperature");
+    }
+    
     sendRequest = false;
     delay(100);
     digitalWrite(ledPin, LOW);
   }
 }
 
+int readHumidity() {
+  int humidity = 0;
+  digitalWrite(humidityVccPin, HIGH);
+  delay(20);
+  humidity = analogRead(sensorPin);
+  digitalWrite(humidityVccPin, LOW);
+  return humidity;
+}

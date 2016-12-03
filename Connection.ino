@@ -46,32 +46,44 @@ void sendValue(char const * sensorName, uint32_t timestamp, float value) {
   // Can't get reconnect to work
   //connectToAP();
   
-  Serial.println("Connect to graphite");
+  Serial.print("Connect to graphite .. ");
   sendRetries = 0;
   while (!client.connect(graphiteServer, graphitePort) && sendRetries++ < maxRetries)  {
     //Serial.println("Current Wifi status: ");
     //Serial.println(WiFi.status());
+    Serial.println();
     Serial.print("Cannot reach graphite server, retrying .. try ");
     Serial.println(sendRetries);
   }
 
   if (sendRetries > maxRetries) {
+    Serial.println("Giving up .. :-(");
     return;
   }
 
-  printValues(sensorName, value, timestamp);
+  sendValues(sensorName, value, timestamp);
   client.flush();
   client.stop();
   
-  Serial.println("Send sensor data");
-
+  Serial.println("sent sensor data:");
+  printValues(sensorName, value, timestamp);
+  
   // Can't get reconnect to work...
   //delay(5000);  
   //disconnectFromAP();
 }
 
 void printValues(const char name[], float value, uint32_t timestamp) {
-  client.print(sensorName);
+  Serial.print(name);
+  Serial.print(" ");  
+  Serial.print(value);
+  Serial.print(" ");
+  Serial.print(timestamp);
+  Serial.println();
+}
+
+void sendValues(const char name[], float value, uint32_t timestamp) {
+  client.print(name);
   client.print(" ");  
   client.print(value);
   client.print(" ");
